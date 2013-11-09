@@ -1,7 +1,7 @@
 package statsdclient
 
 import akka.actor.{Actor, ActorRef, Props}
-import akka.io.{IO, Udp}
+import akka.io.{IO, UdpConnected}
 import java.net.InetSocketAddress
 
 object Statsd {
@@ -10,18 +10,18 @@ object Statsd {
 }
 
 class Statsd(remote: InetSocketAddress, prefix: String) extends Actor {
-  import Udp._
+  import UdpConnected._
   import context.system
 
-  IO(Udp) ! Udp.SimpleSender
+  IO(UdpConnected) ! UdpConnected.Connect(self, remote)
 
   def receive = {
-    case Udp.SimpleSenderReady =>
+    case UdpConnected.Connected =>
       context.become(ready(sender))
   }
 
   def ready(send: ActorRef): Receive = {
     case stat: StatsdStatistic =>
-      send ! Udp.Send(stat.toByteString(prefix), remote)
+      send ! UdpConnected.Send(stat.toByteString(prefix), remote)
   }
 }
